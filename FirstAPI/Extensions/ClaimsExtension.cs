@@ -10,7 +10,6 @@ namespace FirstAPI.Extensions
         {
             new(ClaimTypes.Name, user.Id.ToString())
         };
-
             return result;
         }
 
