@@ -128,7 +128,7 @@ namespace FirstAPI.Controllers
 
         [HttpPut("/products/{id}")]
         [Authorize]
-        public async Task<IActionResult> PutAsync(
+        public async Task<IActionResult> Put(
             [FromRoute] int id,
             [FromBody] Product model)
         {
@@ -169,7 +169,7 @@ namespace FirstAPI.Controllers
 
         [HttpDelete("/products/{id}")]
         [Authorize]
-        public async Task<IActionResult> DeleteAsync([FromRoute] int id)
+        public async Task<IActionResult> Delete([FromRoute] int id)
         {
             try
             {
