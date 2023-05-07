@@ -5,7 +5,6 @@ using FirstAPI.ViewModels;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
-using System.Collections.Generic;
 using System.Data.SqlClient;
 
 namespace FirstAPI.Controllers
@@ -25,19 +24,19 @@ namespace FirstAPI.Controllers
         [Authorize]
         public async Task<IActionResult> PostAsync([FromBody] RegisterProductViewModel model)
         {
-            if (!ModelState.IsValid)
-                return BadRequest(new ResultViewModel<string>(ModelState.GetErrors()));
-
-            var parameters = new
+            try
             {
-                model.Name,
-                model.Description,
-                User_Id = User.GetUserId()
-            };
+                if (!ModelState.IsValid)
+                    return BadRequest(new ResultViewModel<string>(ModelState.GetErrors()));
 
-            using (var connection = new SqlConnection(_connectionString))
-            {
-                try
+                var parameters = new
+                {
+                    model.Name,
+                    model.Description,
+                    User_Id = User.GetUserId()
+                };
+
+                using (var connection = new SqlConnection(_connectionString))
                 {
                     const string sql = "INSERT INTO [Products] (Name, Description, User_Id) OUTPUT INSERTED.Id VALUES (@Name, @Description, @User_Id)";
 
@@ -55,42 +54,56 @@ namespace FirstAPI.Controllers
 
                     return Ok(new ResultViewModel<dynamic>(productData));
                 }
-                catch (Exception ex)
-                {
-                    Console.WriteLine(ex.Message);
-                    return StatusCode(500, new ResultViewModel<Product>("Falha interna no servidor"));
-                }
+            }
+            catch
+            {
+                return StatusCode(500, new ResultViewModel<Product>("Falha interna no servidor"));
             }
         }
 
         [HttpGet("/products")]
         [Authorize]
-        public async Task<IActionResult> GetAll()
+        public async Task<IActionResult> GetAll(
+            [FromQuery] int page = 0,
+            [FromQuery] int pageSize = 1)
         {
             try
             {
                 if (!ModelState.IsValid)
                     return BadRequest(new ResultViewModel<string>(ModelState.GetErrors()));
 
-                var parameters = new { User_Id = User.GetUserId() };
+                var parameters = new
+                {
+                    User_Id = User.GetUserId(),
+                    Skip = page * pageSize,
+                    Take = pageSize
+                };
 
                 using (var connection = new SqlConnection(_connectionString))
                 {
                     await connection.OpenAsync();
 
-                    const string sql = "SELECT * FROM [Products] WHERE User_Id = @User_Id";
+                    const string countSql = "SELECT COUNT(*) AS Total FROM [Products] WHERE User_Id = @User_Id";
+                    var count = await connection.ExecuteScalarAsync<int>(countSql, parameters);
 
+                    const string sql = "SELECT * FROM [Products] WHERE User_Id = @User_Id ORDER BY Id OFFSET @Skip ROWS FETCH NEXT @Take ROWS ONLY";
                     var products = await connection.QueryAsync<Product>(sql, parameters);
 
-                    return Ok(new ResultViewModel<dynamic>(products));
+                    return Ok(new ResultViewModel<dynamic>(new
+                    {
+                        total = count,
+                        page,
+                        pageSize,
+                        products
+                    }));
                 }
             }
-            catch (Exception ex)
+            catch
             {
-                Console.WriteLine(ex.Message);
                 return StatusCode(500, new ResultViewModel<string>("Erro interno do servidor"));
             }
         }
+
 
         [HttpGet("/products/{id}")]
         [Authorize]
@@ -119,9 +132,8 @@ namespace FirstAPI.Controllers
                     return Ok(new ResultViewModel<Product>(product));
                 }
             }
-            catch (Exception ex)
+            catch
             {
-                Console.WriteLine(ex.Message);
                 return StatusCode(500, new ResultViewModel<Product>("Falha interna no servidor"));
             }
         }
