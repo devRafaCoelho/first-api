@@ -13,6 +13,7 @@ using System.Data.SqlClient;
 namespace FirstAPI.Controllers
 {
     [ApiController]
+
     public class UserController : ControllerBase
     {
         private readonly string _connectionString;
