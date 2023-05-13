@@ -1,12 +1,14 @@
 using FirstAPI;
+using FirstAPI.Extensions;
 using FirstAPI.Services;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.IdentityModel.Tokens;
 using System.Text;
 
+var key = Encoding.ASCII.GetBytes(Configuration.JwtKey);
+
 var builder = WebApplication.CreateBuilder(args);
 
-var key = Encoding.ASCII.GetBytes(Configuration.JwtKey);
 builder.Services.AddAuthentication(x =>
 {
     x.DefaultAuthenticateScheme = JwtBearerDefaults.AuthenticationScheme;
@@ -30,13 +32,22 @@ builder
         options.SuppressModelStateInvalidFilter = true;
     });
 
+builder.Services.AddRepositories();
 builder.Services.AddTransient<TokenService>();
+
+builder.Services.AddEndpointsApiExplorer();
+builder.Services.AddSwaggerGen();
 
 var app = builder.Build();
 
 app.UseAuthentication();
 app.UseAuthorization();
-
 app.MapControllers();
+
+if (app.Environment.IsDevelopment())
+{
+    app.UseSwagger();
+    app.UseSwaggerUI();
+}
 
 app.Run();
