@@ -1,8 +1,11 @@
 ﻿using FirstAPI.Extensions;
 using FirstAPI.Models;
 using FirstAPI.Repositories.Contracts;
+using FirstAPI.Services;
 using FirstAPI.ViewModels;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using SecureIdentity.Password;
 using System.Data.SqlClient;
 
 namespace FirstAPI.Controllers;
@@ -18,11 +21,11 @@ public class UserController : ControllerBase
 
 
     [HttpPost("/users/register")]
-    [ProducesResponseType(typeof(User), 200)]
+    [ProducesResponseType(typeof(UserResult), 200)]
     [ProducesResponseType(typeof(ErrorViewModel), 400)]
     [ProducesResponseType(typeof(ErrorViewModel), 500)]
 
-    public async Task<IActionResult> Post([FromBody] RegisterUserViewModel model)
+    public async Task<IActionResult> RegisterUserAsync([FromBody] RegisterUserViewModel model)
     {
         try
         {
@@ -31,194 +34,169 @@ public class UserController : ControllerBase
 
             var user = await _userRepository.AddUserAsync(model);
 
-            var userdata = new
+            var result = new UserResult
             {
-                id = user.Id,
-                name = model.Name,
-                email = model.Email
+                Id = user.Id,
+                Name = model.Name,
+                Email = model.Email
             };
 
-            return Ok(userdata);
+            return Ok(result);
         }
         catch (SqlException ex) when (ex.Number == 2627)
         {
-            return BadRequest(new { error = "E-mail já está cadastrado." });
+            return BadRequest(new { error = "E-mail já cadastrado." });
         }
         catch
         {
-            return StatusCode(500, new { Mensagem = "Falha interna no servidor" });
+            return StatusCode(500, new { error = "Falha interna no servidor" });
+        }
+    }
+
+    [HttpPost("/users/login")]
+    [ProducesResponseType(typeof(LoginResult), 200)]
+    [ProducesResponseType(typeof(ErrorViewModel), 401)]
+    [ProducesResponseType(typeof(ErrorViewModel), 404)]
+    [ProducesResponseType(typeof(ErrorViewModel), 500)]
+
+    public async Task<IActionResult> LoginAsync(
+    [FromBody] LoginViewModel model,
+    [FromServices] TokenService tokenService)
+    {
+        try
+        {
+            if (!ModelState.IsValid)
+                return BadRequest(new { error = ModelState.GetErrors() });
+
+            var user = await _userRepository.GetUserByEmailAsync(model.Email);
+
+            if (user == null)
+                return NotFound(new { error = "Usuário não encontrado" });
+
+            if (!PasswordHasher.Verify(user.Password ?? "", model.Password))
+                return Unauthorized(new { error = "Usuário ou senha incorretos." });
+
+            var token = tokenService.GenerateToken(user);
+
+            var result = new LoginResult
+            {
+                Id = user.Id,
+                Email = user.Email,
+                Token = token
+            };
+
+            return Ok(result);
+        }
+        catch
+        {
+            return StatusCode(500, new { Message = "Falha interna no servidor" });
+        }
+    }
+
+    [HttpGet("/users")]
+    [Authorize]
+    [ProducesResponseType(typeof(UserResult), 200)]
+    [ProducesResponseType(typeof(ErrorViewModel), 400)]
+    [ProducesResponseType(typeof(ErrorViewModel), 500)]
+
+    public async Task<IActionResult> GetUserData()
+    {
+        try
+        {
+            if (!ModelState.IsValid)
+                return BadRequest(new { error = ModelState.GetErrors() });
+
+            var user = await _userRepository.GetUserByIdAsync(User.GetUserId());
+
+            if (user == null)
+                return NotFound(new { error = "Usuário não encontrado" });
+
+            var result = new UserResult
+            {
+                Id = user.Id,
+                Name = user.Name,
+                Email = user.Email
+            };
+
+            return Ok(result);
+        }
+        catch
+        {
+            return StatusCode(500, new { error = "Falha interna no servidor" });
+        }
+    }
+
+    [HttpPut("/users")]
+    [Authorize]
+    [ProducesResponseType(typeof(MessageViewModel), 200)]
+    [ProducesResponseType(typeof(ErrorViewModel), 400)]
+    [ProducesResponseType(typeof(ErrorViewModel), 401)]
+    [ProducesResponseType(typeof(ErrorViewModel), 404)]
+    [ProducesResponseType(typeof(ErrorViewModel), 500)]
+
+    public async Task<IActionResult> UpdateUserAsync([FromBody] UpdateUserViewModel model)
+    {
+        try
+        {
+            if (!ModelState.IsValid)
+                return BadRequest(new { error = ModelState.GetErrors() });
+
+            var user = await _userRepository.GetUserByIdAsync(User.GetUserId());
+
+            if (user == null)
+                return NotFound(new { error = "Usuário não encontrado" });
+
+            if (!PasswordHasher.Verify(user.Password ?? "", model.Password))
+                return Unauthorized(new { error = "Senha incorreta." });
+
+
+            await _userRepository.UpdateUserByIdAsync(model, User.GetUserId());
+
+            return Ok(new { Message = "Dados editados com sucesso!" });
+
+        }
+        catch (SqlException ex) when (ex.Number == 2627)
+        {
+            return BadRequest(new { error = "E-mail já cadastrado." });
+        }
+        catch
+        {
+            return StatusCode(500, new { error = "Falha interna no servidor" });
+        }
+    }
+
+    [HttpDelete("/users")]
+    [Authorize]
+    [ProducesResponseType(typeof(MessageViewModel), 200)]
+    [ProducesResponseType(typeof(ErrorViewModel), 400)]
+    [ProducesResponseType(typeof(ErrorViewModel), 404)]
+    [ProducesResponseType(typeof(ErrorViewModel), 500)]
+    public async Task<IActionResult> Delete()
+    {
+        try
+        {
+            if (!ModelState.IsValid)
+                return BadRequest(new { error = ModelState.GetErrors() });
+
+            var user = await _userRepository.GetUserByIdAsync(User.GetUserId());
+
+            if (user == null)
+                return NotFound(new { error = "Usuário não encontrado" });
+
+            await _userRepository.DeleteUserByIdAsync(User.GetUserId());
+
+            return Ok(new { Message = "Conta cancelada com sucesso!" });
+        }
+        catch
+        {
+            return StatusCode(500, new { error = "Falha interna no servidor" });
         }
     }
 }
 
-//[HttpPost("/users/login")]
-//public async Task<IActionResult> Login(
-//[FromBody] LoginViewModel model,
-//[FromServices] TokenService tokenService)
-//{
-//    try
-//    {
-//        if (!ModelState.IsValid)
-//            return BadRequest(new ResultViewModel<string>(ModelState.GetErrors()));
-
-//        var parameters = new
-//        {
-//            model.Email
-//        };
-
-//        using (var connection = new SqlConnection(_connectionString))
-//        {
-//            const string sql = "SELECT * FROM [Users] WHERE Email = @Email";
-
-//            await connection.OpenAsync();
-
-//            var user = await connection.QueryFirstOrDefaultAsync<User>(sql, parameters);
-
-//            if (user == null)
-//                return StatusCode(401, new ResultViewModel<string>("Usuário não encontrado"));
-
-//            if (!PasswordHasher.Verify(user.Password, model.Password))
-//                return StatusCode(401, new ResultViewModel<string>("Usuário ou senha incorretos."));
 
 
-//            var token = tokenService.GenerateToken(user);
-
-//            var userData = new
-//            {
-//                id = user.Id,
-//                email = user.Email,
-//                token
-//            };
-
-//            return Ok(new ResultViewModel<dynamic>(userData, null));
-//        }
-//    }
-//    catch
-//    {
-//        return StatusCode(500, new ResultViewModel<string>("05X04 - Falha interna no servidor"));
-
-//    }
-//}
-
-//[HttpGet("/users")]
-//[Authorize]
-//public async Task<IActionResult> Get()
-//{
-//    try
-//    {
-//        if (!ModelState.IsValid)
-//            return BadRequest(new ResultViewModel<string>(ModelState.GetErrors()));
-
-//        var parameters = new { UserId = User.GetUserId() };
-
-//        using (var connection = new SqlConnection(_connectionString))
-//        {
-//            await connection.OpenAsync();
-
-//            const string sql = "SELECT * FROM [Users] WHERE Id = @UserId";
-
-//            var user = await connection.QueryFirstOrDefaultAsync<User>(sql, parameters);
-
-//            if (user == null)
-//                return NotFound(new ResultViewModel<string>("Usuário não encontrado"));
-
-//            var userData = new
-//            {
-//                id = user.Id,
-//                email = user.Email,
-//                name = user.Name
-//            };
-
-//            return Ok(new ResultViewModel<dynamic>(userData, null));
-//        }
-//    }
-//    catch
-//    {
-//        return StatusCode(500, new ResultViewModel<string>("Erro interno do servidor"));
-//    }
-//}
-
-//[HttpPut("/users")]
-//[Authorize]
-//public async Task<IActionResult> Put([FromBody] UpdateUserViewModel model)
-//{
-//    try
-//    {
-//        if (!ModelState.IsValid)
-//            return BadRequest(new ResultViewModel<string>(ModelState.GetErrors()));
-
-//        var parameters = new
-//        {
-//            UserId = User.GetUserId(),
-//            model.Name,
-//            model.Email
-//        };
-
-//        using (var connection = new SqlConnection(_connectionString))
-//        {
-//            await connection.OpenAsync();
-
-//            const string sql = "SELECT * FROM [Users] WHERE Id = @UserId";
-
-//            var user = await connection.QueryFirstOrDefaultAsync<User>(sql, parameters);
-
-//            if (user == null)
-//                return NotFound(new ResultViewModel<string>("Usuário não encontrado"));
-
-//            if (!PasswordHasher.Verify(user.Password, model.Password))
-//                return StatusCode(401, new ResultViewModel<string>("Usuário ou senha incorretos."));
 
 
-//            const string query = "UPDATE [Users] SET Name = @Name, Email = @Email WHERE Id = @UserId";
 
-//            await connection.ExecuteAsync(query, parameters);
 
-//            return Ok(new ResultViewModel<string>("Dados editados com sucesso!"));
-//        }
-//    }
-//    catch (SqlException ex) when (ex.Number == 2627)
-//    {
-//        return StatusCode(400, new ResultViewModel<string>("05X99 - Este E-mail já está cadastrado"));
-//    }
-//    catch (Exception ex)
-//    {
-//        Console.WriteLine(ex.Message);
-//        return StatusCode(500, new ResultViewModel<string>("05X04 - Falha interna no servidor"));
-//    }
-
-//}
-
-//[HttpDelete("/users")]
-//[Authorize]
-//public async Task<IActionResult> Delete()
-//{
-//    try
-//    {
-//        if (!ModelState.IsValid)
-//            return BadRequest(new ResultViewModel<string>(ModelState.GetErrors()));
-
-//        var parameters = new { UserId = User.GetUserId() };
-
-//        using (var connection = new SqlConnection(_connectionString))
-//        {
-//            await connection.OpenAsync();
-
-//            const string sql = "SELECT * FROM [Users] WHERE Id = @UserId";
-
-//            var user = await connection.QueryFirstOrDefaultAsync<User>(sql, parameters);
-
-//            if (user == null)
-//                return NotFound(new ResultViewModel<string>("Usuário não encontrado"));
-
-//            const string query = "DELETE FROM [Users] WHERE Id = @UserId";
-
-//            await connection.ExecuteAsync(query, parameters);
-
-//            return Ok(new ResultViewModel<string>("Conta cancelada com sucesso!"));
-//        }
-//    }
-//    catch
-//    {
-//        return StatusCode(500, new ResultViewModel<string>("Erro interno do servidor"));
-//    }
-//}

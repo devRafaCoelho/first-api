@@ -4,14 +4,14 @@ namespace FirstAPI.ViewModels;
 
 public class RegisterUserViewModel
 {
-    [Required(ErrorMessage = "O nome é obrigatório")]
+    [Required(ErrorMessage = "O Nome é obrigatório.")]
     public string? Name { get; set; }
 
-    [Required(ErrorMessage = "O E-mail é obrigatório")]
-    [EmailAddress(ErrorMessage = "O E-mail é inválido")]
+    [Required(ErrorMessage = "O E-mail é obrigatório.")]
+    [EmailAddress(ErrorMessage = "E-mail inválido.")]
     public string? Email { get; set; }
 
-    [Required(ErrorMessage = "A senha é obrigatória")]
+    [Required(ErrorMessage = "A Senha é obrigatória.")]
     public string? Password { get; set; }
 }
 
