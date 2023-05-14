@@ -15,7 +15,7 @@ public class UserRepository : IUserRepository
     public UserRepository(IConfiguration configuration)
         => _connectionString = configuration.GetConnectionString("API");
 
-    public async Task<User> AddUserAsync(RegisterUserViewModel model)
+    public async Task<User> AddUserAsync(UserViewModel model)
     {
         using (IDbConnection connection = new SqlConnection(_connectionString))
         {
@@ -62,7 +62,7 @@ public class UserRepository : IUserRepository
         }
     }
 
-    public async Task<User> UpdateUserByIdAsync(UpdateUserViewModel model, int id)
+    public async Task<User> UpdateUserByIdAsync(UserViewModel model, int id)
     {
         using (IDbConnection connection = new SqlConnection(_connectionString))
         {

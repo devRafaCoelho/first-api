@@ -2,7 +2,7 @@
 
 namespace FirstAPI.ViewModels;
 
-public class RegisterUserViewModel
+public class UserViewModel
 {
     [Required(ErrorMessage = "O Nome é obrigatório.")]
     public string? Name { get; set; }

@@ -2,9 +2,9 @@
 
 namespace FirstAPI.ViewModels
 {
-    public class RegisterProductViewModel
+    public class ProductViewModel
     {
-        [Required(ErrorMessage = "O nome é obrigatório")]
+        [Required(ErrorMessage = "O Nome é obrigatório")]
         public string Name { get; set; }
 
         public string Description { get; set; }

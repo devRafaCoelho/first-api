@@ -25,7 +25,7 @@ public class UserController : ControllerBase
     [ProducesResponseType(typeof(ErrorViewModel), 400)]
     [ProducesResponseType(typeof(ErrorViewModel), 500)]
 
-    public async Task<IActionResult> RegisterUserAsync([FromBody] RegisterUserViewModel model)
+    public async Task<IActionResult> RegisterUserAsync([FromBody] UserViewModel model)
     {
         try
         {
@@ -55,7 +55,7 @@ public class UserController : ControllerBase
 
     [HttpPost("/users/login")]
     [ProducesResponseType(typeof(LoginResult), 200)]
-    [ProducesResponseType(typeof(ErrorViewModel), 401)]
+    [ProducesResponseType(typeof(ErrorViewModel), 400)]
     [ProducesResponseType(typeof(ErrorViewModel), 404)]
     [ProducesResponseType(typeof(ErrorViewModel), 500)]
 
@@ -71,7 +71,7 @@ public class UserController : ControllerBase
             var user = await _userRepository.GetUserByEmailAsync(model.Email);
 
             if (user == null)
-                return NotFound(new { error = "Usuário não encontrado" });
+                return Unauthorized(new { error = "Usuário ou senha incorretos." });
 
             if (!PasswordHasher.Verify(user.Password ?? "", model.Password))
                 return Unauthorized(new { error = "Usuário ou senha incorretos." });
@@ -134,7 +134,7 @@ public class UserController : ControllerBase
     [ProducesResponseType(typeof(ErrorViewModel), 404)]
     [ProducesResponseType(typeof(ErrorViewModel), 500)]
 
-    public async Task<IActionResult> UpdateUserAsync([FromBody] UpdateUserViewModel model)
+    public async Task<IActionResult> UpdateUserAsync([FromBody] UserViewModel model)
     {
         try
         {
@@ -146,7 +146,7 @@ public class UserController : ControllerBase
             if (user == null)
                 return NotFound(new { error = "Usuário não encontrado" });
 
-            if (!PasswordHasher.Verify(user.Password ?? "", model.Password))
+            if (!PasswordHasher.Verify(user.Password ?? "", model.Password ?? ""))
                 return Unauthorized(new { error = "Senha incorreta." });
 
 
