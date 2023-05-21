@@ -2,7 +2,7 @@
 
 namespace FirstAPI.Models;
 
-public class User
+public class UpdateUser
 {
     public int Id { get; set; }
 
@@ -15,9 +15,6 @@ public class User
 
     [Required(ErrorMessage = "A Senha é obrigatória.")]
     public string? Password { get; set; }
-
-    [Required(ErrorMessage = "A Confirmação da Senha é obrigatória.")]
-    public string? ConfirmPassword { get; set; }
 
     [StringLength(11, MinimumLength = 11, ErrorMessage = "CPF inválido.")]
     public string? CPF { get; set; }

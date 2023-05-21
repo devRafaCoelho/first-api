@@ -20,21 +20,24 @@ public class UserController : ControllerBase
         => _userRepository = userRepository;
 
 
-    [HttpPost("/users/register")]
-    [ProducesResponseType(typeof(UserResult), 200)]
+    [HttpPost("/user/register")]
+    [ProducesResponseType(typeof(UserViewModel), 200)]
     [ProducesResponseType(typeof(ErrorViewModel), 400)]
     [ProducesResponseType(typeof(ErrorViewModel), 500)]
 
-    public async Task<IActionResult> RegisterUserAsync([FromBody] UserViewModel model)
+    public async Task<IActionResult> RegisterUserAsync([FromBody] User model)
     {
         try
         {
             if (!ModelState.IsValid)
                 return BadRequest(new { error = ModelState.GetErrors() });
 
+            if (model.Password != model.ConfirmPassword)
+                return BadRequest("As senhas não coincidem.");
+
             var user = await _userRepository.AddUserAsync(model);
 
-            var result = new UserResult
+            var result = new UserViewModel
             {
                 Id = user.Id,
                 Name = model.Name,
@@ -43,7 +46,7 @@ public class UserController : ControllerBase
 
             return Ok(result);
         }
-        catch (SqlException ex) when (ex.Number == 2627)
+        catch (SqlException)
         {
             return BadRequest(new { error = "E-mail já cadastrado." });
         }
@@ -53,14 +56,14 @@ public class UserController : ControllerBase
         }
     }
 
-    [HttpPost("/users/login")]
-    [ProducesResponseType(typeof(LoginResult), 200)]
+    [HttpPost("/user/login")]
+    [ProducesResponseType(typeof(LoginViewModel), 200)]
     [ProducesResponseType(typeof(ErrorViewModel), 400)]
     [ProducesResponseType(typeof(ErrorViewModel), 404)]
     [ProducesResponseType(typeof(ErrorViewModel), 500)]
 
     public async Task<IActionResult> LoginAsync(
-    [FromBody] LoginViewModel model,
+    [FromBody] Login model,
     [FromServices] TokenService tokenService)
     {
         try
@@ -78,10 +81,16 @@ public class UserController : ControllerBase
 
             var token = tokenService.GenerateToken(user);
 
-            var result = new LoginResult
+            var result = new LoginViewModel
             {
-                Id = user.Id,
-                Email = user.Email,
+                User = new UserViewModel
+                {
+                    Id = user.Id,
+                    Name = user.Name,
+                    Email = user.Email,
+                    CPF = user.CPF,
+                    Phone = user.Phone
+                },
                 Token = token
             };
 
@@ -93,9 +102,9 @@ public class UserController : ControllerBase
         }
     }
 
-    [HttpGet("/users")]
+    [HttpGet("/user")]
     [Authorize]
-    [ProducesResponseType(typeof(UserResult), 200)]
+    [ProducesResponseType(typeof(UserViewModel), 200)]
     [ProducesResponseType(typeof(ErrorViewModel), 400)]
     [ProducesResponseType(typeof(ErrorViewModel), 500)]
 
@@ -111,11 +120,13 @@ public class UserController : ControllerBase
             if (user == null)
                 return NotFound(new { error = "Usuário não encontrado" });
 
-            var result = new UserResult
+            var result = new UserViewModel
             {
                 Id = user.Id,
                 Name = user.Name,
-                Email = user.Email
+                Email = user.Email,
+                CPF = user.CPF,
+                Phone = user.Phone
             };
 
             return Ok(result);
@@ -126,7 +137,7 @@ public class UserController : ControllerBase
         }
     }
 
-    [HttpPut("/users")]
+    [HttpPut("/user")]
     [Authorize]
     [ProducesResponseType(typeof(MessageViewModel), 200)]
     [ProducesResponseType(typeof(ErrorViewModel), 400)]
@@ -134,7 +145,7 @@ public class UserController : ControllerBase
     [ProducesResponseType(typeof(ErrorViewModel), 404)]
     [ProducesResponseType(typeof(ErrorViewModel), 500)]
 
-    public async Task<IActionResult> UpdateUserAsync([FromBody] UserViewModel model)
+    public async Task<IActionResult> UpdateUserAsync([FromBody] UpdateUser model)
     {
         try
         {
@@ -149,13 +160,17 @@ public class UserController : ControllerBase
             if (!PasswordHasher.Verify(user.Password ?? "", model.Password ?? ""))
                 return Unauthorized(new { error = "Senha incorreta." });
 
+            var hasUserCpf = await _userRepository.GetUserByCpfAsync(model.CPF ?? "");
+
+            if (hasUserCpf != null)
+                return BadRequest(new { error = "CPF já cadastrado." });
 
             await _userRepository.UpdateUserByIdAsync(model, User.GetUserId());
 
             return Ok(new { Message = "Dados editados com sucesso!" });
 
         }
-        catch (SqlException ex) when (ex.Number == 2627)
+        catch (SqlException)
         {
             return BadRequest(new { error = "E-mail já cadastrado." });
         }
@@ -165,7 +180,7 @@ public class UserController : ControllerBase
         }
     }
 
-    [HttpDelete("/users")]
+    [HttpDelete("/user")]
     [Authorize]
     [ProducesResponseType(typeof(MessageViewModel), 200)]
     [ProducesResponseType(typeof(ErrorViewModel), 400)]
