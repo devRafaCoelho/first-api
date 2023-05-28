@@ -25,5 +25,7 @@ public class ClientViewModel
     public string? City { get; set; }
 
     public string? UF { get; set; }
+
+    public string? Status { get; set; }
 }
 
