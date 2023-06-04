@@ -55,9 +55,8 @@ public class ClientController : ControllerBase
         {
             return BadRequest(new { error = "E-mail ou CPF já cadastrado." });
         }
-        catch (Exception ex)
+        catch
         {
-            Console.WriteLine(ex.Message);
             return StatusCode(500, new { error = "Falha interna no servidor" });
         }
     }
@@ -94,8 +93,9 @@ public class ClientController : ControllerBase
 
             return Ok(result);
         }
-        catch
+        catch (Exception ex) 
         {
+            Console.WriteLine(ex.Message);
             return StatusCode(500, new { error = "Falha interna no servidor" });
         }
     }
@@ -125,6 +125,7 @@ public class ClientController : ControllerBase
             return StatusCode(500, new { error = "Falha interna no servidor" });
         }
     }
+
     [HttpPut("/client/{id}")]
     [ProducesResponseType(typeof(MessageViewModel), 200)]
     [ProducesResponseType(typeof(ErrorViewModel), 400)]

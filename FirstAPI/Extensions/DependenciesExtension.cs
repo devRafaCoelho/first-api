@@ -19,6 +19,7 @@ public static class DependenciesExtension
     {
         services.AddScoped<IUserRepository, UserRepository>();
         services.AddScoped<IClientRepository, ClientRepository>();
+        services.AddScoped<IRecordRepository, RecordRepository>();
     }
 }
 

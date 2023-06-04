@@ -90,15 +90,28 @@ public class ClientRepository : IClientRepository
                                    clients.phone,
                                    clients.cpf,
                                    CASE
-                                     WHEN records.paid_out = 1 THEN 'Em dia'
-                                     WHEN records.due_date < GETDATE() THEN 'Inadimplente'
+                                     WHEN EXISTS (
+                                       SELECT 1
+                                       FROM records
+                                       WHERE records.id_client = clients.id
+                                         AND records.due_date < GETDATE()
+                                         AND records.paid_out <> 1
+                                     ) THEN 'Inadimplente'
                                      ELSE 'Em dia'
                                    END AS status
                                  FROM
                                    clients
                                  LEFT JOIN
                                    records ON clients.id = records.id_client
-                                 ORDER BY id OFFSET @skip ROWS FETCH NEXT @take ROWS ONLY;";
+                                 GROUP BY
+                                   clients.id,
+                                   clients.name,
+                                   clients.email,
+                                   clients.phone,
+                                   clients.cpf
+                                 ORDER BY
+                                   clients.id
+                                 OFFSET @skip ROWS FETCH NEXT @take ROWS ONLY;";
 
             var parameters = new
             {
