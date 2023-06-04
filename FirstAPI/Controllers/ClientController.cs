@@ -67,9 +67,7 @@ public class ClientController : ControllerBase
     [ProducesResponseType(typeof(ErrorViewModel), 404)]
     [ProducesResponseType(typeof(ErrorViewModel), 500)]
 
-    public async Task<IActionResult> ListClientsAsync(
-                   [FromQuery] int page = 0,
-                   [FromQuery] int pageSize = 25)
+    public async Task<IActionResult> ListClientsAsync([FromQuery] int page = 0, [FromQuery] int pageSize = 25)
     {
         try
         {
@@ -93,9 +91,8 @@ public class ClientController : ControllerBase
 
             return Ok(result);
         }
-        catch (Exception ex) 
+        catch
         {
-            Console.WriteLine(ex.Message);
             return StatusCode(500, new { error = "Falha interna no servidor" });
         }
     }
@@ -116,7 +113,7 @@ public class ClientController : ControllerBase
             var client = await _clientRepository.GetClientByIdAsync(id);
 
             if (client == null)
-                return NotFound(new { error = "Cliente não encontrado." });
+                return NotFound(new { error = "Nenhum cliente encontrado." });
 
             return Ok(client);
         }
@@ -142,7 +139,7 @@ public class ClientController : ControllerBase
             var client = await _clientRepository.GetClientByIdAsync(id);
 
             if (client == null)
-                return NotFound(new { error = "Cliente não encontrado." });
+                return NotFound(new { error = "Nenhum cliente encontrado." });
 
             if (model.Email != client.Email)
             {
@@ -185,7 +182,10 @@ public class ClientController : ControllerBase
             var client = await _clientRepository.GetClientByIdAsync(id);
 
             if (client == null)
-                return NotFound(new { error = "Cliente não encontrado." });
+                return NotFound(new { error = "Nenhum cliente encontrado." });
+
+            if (client.Status != "Em dia")
+                return BadRequest(new { error = "Este cliente não pode ser excluído." });
 
             await _clientRepository.DeleteClientByIdAsync(id);
 

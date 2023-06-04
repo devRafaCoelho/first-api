@@ -254,11 +254,14 @@ public class ClientRepository : IClientRepository
     {
         using (IDbConnection connection = new SqlConnection(_connectionString))
         {
-            const string sql = "DELETE FROM [clients] WHERE id = @id;";
+
+            const string sqlRecord = "DELETE FROM [records] WHERE id_client = @id;";
+            const string sqlClient = "DELETE FROM [clients] WHERE id = @id;";
 
             var parameters = new { id };
 
-            await connection.ExecuteAsync(sql, parameters);
+            await connection.ExecuteAsync(sqlRecord, parameters);
+            await connection.ExecuteAsync(sqlClient, parameters);
 
             return true;
         }

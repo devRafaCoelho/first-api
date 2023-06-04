@@ -32,7 +32,7 @@ public class RecordController : ControllerBase
 
             var record = await _recordRepository.AddRecordAsync(model);
 
-            var result = new RecordViewModel
+            var result = new Record
             {
                 Id = record.Id,
                 Id_Client = model.Id_Client,
@@ -56,9 +56,7 @@ public class RecordController : ControllerBase
     [ProducesResponseType(typeof(ErrorViewModel), 404)]
     [ProducesResponseType(typeof(ErrorViewModel), 500)]
 
-    public async Task<IActionResult> ListRecordsAsync(
-                   [FromQuery] int page = 0,
-                   [FromQuery] int pageSize = 25)
+    public async Task<IActionResult> ListRecordsAsync([FromQuery] int page = 0, [FromQuery] int pageSize = 25)
     {
         try
         {
@@ -105,7 +103,7 @@ public class RecordController : ControllerBase
             var record = await _recordRepository.GetRecordByIdAsync(id);
 
             if (record == null)
-                return NotFound(new { error = "Cobrança não encontrada." });
+                return NotFound(new { error = "Nenhuma cobrança encontrada." });
 
             return Ok(record);
         }
@@ -137,9 +135,8 @@ public class RecordController : ControllerBase
 
             return Ok(new { Message = "Dados editados com sucesso!" });
         }
-        catch (Exception ex)
+        catch
         {
-            Console.WriteLine(ex.Message);
             return StatusCode(500, new { error = "Falha interna no servidor." });
         }
     }
@@ -163,7 +160,7 @@ public class RecordController : ControllerBase
             if (record == null)
                 return NotFound(new { error = "Nenuhuma cobrança encontrada." });
 
-            if (record.Status != "Paga")
+            if (record.Status != "Pendente")
                 return BadRequest(new { error = "Esta cobrança não pode ser excluída." });
 
             await _recordRepository.DeleteRecordByIdAsync(id);

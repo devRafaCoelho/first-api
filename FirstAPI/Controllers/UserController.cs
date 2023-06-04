@@ -62,9 +62,7 @@ public class UserController : ControllerBase
     [ProducesResponseType(typeof(ErrorViewModel), 404)]
     [ProducesResponseType(typeof(ErrorViewModel), 500)]
 
-    public async Task<IActionResult> LoginAsync(
-    [FromBody] Login model,
-    [FromServices] TokenService tokenService)
+    public async Task<IActionResult> LoginAsync([FromBody] Login model, [FromServices] TokenService tokenService)
     {
         try
         {
@@ -118,7 +116,7 @@ public class UserController : ControllerBase
             var user = await _userRepository.GetUserByIdAsync(User.GetUserId());
 
             if (user == null)
-                return NotFound(new { error = "Usuário não encontrado" });
+                return NotFound(new { error = "Nenhum usuário encontrado." });
 
             var result = new UserViewModel
             {
@@ -155,7 +153,7 @@ public class UserController : ControllerBase
             var user = await _userRepository.GetUserByIdAsync(User.GetUserId());
 
             if (user == null)
-                return NotFound(new { error = "Usuário não encontrado" });
+                return NotFound(new { error = "Nenhum usuário encontrado." });
 
             if (!PasswordHasher.Verify(user.Password ?? "", model.Password ?? ""))
                 return Unauthorized(new { error = "Senha incorreta." });
@@ -196,7 +194,7 @@ public class UserController : ControllerBase
             var user = await _userRepository.GetUserByIdAsync(User.GetUserId());
 
             if (user == null)
-                return NotFound(new { error = "Usuário não encontrado" });
+                return NotFound(new { error = "Nenhum usuário encontrado." });
 
             await _userRepository.DeleteUserByIdAsync(User.GetUserId());
 
