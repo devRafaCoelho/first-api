@@ -19,11 +19,12 @@ public class UserRepository : IUserRepository
     {
         using (IDbConnection connection = new SqlConnection(_connectionString))
         {
-            const string sql = "INSERT INTO [users] (Name, Email, Password) OUTPUT INSERTED.Id VALUES (@Name, @Email, @Password)";
+            const string sql = "INSERT INTO [users] (FirstName, LastName, Email, Password) OUTPUT INSERTED.Id VALUES (@FirstName, @LastName, @Email, @Password)";
 
             var parameters = new
             {
-                model.Name,
+                model.FirstName,
+                model.LastName,
                 model.Email,
                 Password = PasswordHasher.Hash(model.Password ?? "")
             };
@@ -80,12 +81,13 @@ public class UserRepository : IUserRepository
     {
         using (IDbConnection connection = new SqlConnection(_connectionString))
         {
-            const string sql = "UPDATE [users] SET Name = @Name, Email = @Email, Cpf = @Cpf, Phone = @Phone WHERE Id = @id";
+            const string sql = "UPDATE [users] SET FirstName = @FirstName, LastName = @LastName, Email = @Email, Cpf = @Cpf, Phone = @Phone WHERE Id = @id";
 
             var parameters = new
             {
                 id,
-                model.Name,
+                model.FirstName,
+                model.LastName,
                 model.Email,
                 model.CPF,
                 model.Phone

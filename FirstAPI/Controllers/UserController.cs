@@ -19,7 +19,6 @@ public class UserController : ControllerBase
     public UserController(IUserRepository userRepository)
         => _userRepository = userRepository;
 
-
     [HttpPost("/user/register")]
     [ProducesResponseType(typeof(UserViewModel), 200)]
     [ProducesResponseType(typeof(ErrorViewModel), 400)]
@@ -32,27 +31,36 @@ public class UserController : ControllerBase
             if (!ModelState.IsValid)
                 return BadRequest(new { error = ModelState.GetErrors() });
 
+            var userEmail = await _userRepository.GetUserByEmailAsync(model.Email);
+
+            if (userEmail != null)
+                return BadRequest(new ErrorViewModel("email", "E-mail já cadastrado."));
+
+            var userCPF = await _userRepository.GetUserByCpfAsync(model.CPF);
+
+            if (userCPF != null)
+                return BadRequest(new ErrorViewModel("cpf", "CPF já cadastrado."));
+
             if (model.Password != model.ConfirmPassword)
-                return BadRequest("As senhas não coincidem.");
+                return BadRequest(new ErrorViewModel("password", "As senhas não coincidem."));
 
             var user = await _userRepository.AddUserAsync(model);
 
             var result = new UserViewModel
             {
                 Id = user.Id,
-                Name = model.Name,
-                Email = model.Email
+                FirstName = model.FirstName,
+                LastName = model.LastName,
+                Email = model.Email,
+                CPF = model?.CPF,
+                Phone = model?.Phone
             };
 
             return Ok(result);
         }
-        catch (SqlException)
-        {
-            return BadRequest(new { error = "E-mail já cadastrado." });
-        }
         catch
         {
-            return StatusCode(500, new { error = "Falha interna no servidor" });
+            return StatusCode(500, new ErrorViewModel("global", "Falha interna no servidor"));
         }
     }
 
@@ -72,10 +80,10 @@ public class UserController : ControllerBase
             var user = await _userRepository.GetUserByEmailAsync(model.Email);
 
             if (user == null)
-                return Unauthorized(new { error = "Usuário ou senha incorretos." });
+                return Unauthorized(new ErrorViewModel("email", "Email incorreto."));
 
             if (!PasswordHasher.Verify(user.Password ?? "", model.Password))
-                return Unauthorized(new { error = "Usuário ou senha incorretos." });
+                return Unauthorized(new ErrorViewModel("password", "Senha incorreta."));
 
             var token = tokenService.GenerateToken(user);
 
@@ -84,7 +92,8 @@ public class UserController : ControllerBase
                 User = new UserViewModel
                 {
                     Id = user.Id,
-                    Name = user.Name,
+                    FirstName = user.FirstName,
+                    LastName = user.LastName,
                     Email = user.Email,
                     CPF = user.CPF,
                     Phone = user.Phone
@@ -96,7 +105,7 @@ public class UserController : ControllerBase
         }
         catch
         {
-            return StatusCode(500, new { Message = "Falha interna no servidor" });
+            return StatusCode(500, new ErrorViewModel("global", "Falha interna no servidor"));
         }
     }
 
@@ -116,12 +125,13 @@ public class UserController : ControllerBase
             var user = await _userRepository.GetUserByIdAsync(User.GetUserId());
 
             if (user == null)
-                return NotFound(new { error = "Nenhum usuário encontrado." });
+                return NotFound(new ErrorViewModel("data", "Nenhum usuário encontrado."));
 
             var result = new UserViewModel
             {
                 Id = user.Id,
-                Name = user.Name,
+                FirstName = user.FirstName,
+                LastName = user.LastName,
                 Email = user.Email,
                 CPF = user.CPF,
                 Phone = user.Phone
@@ -131,7 +141,7 @@ public class UserController : ControllerBase
         }
         catch
         {
-            return StatusCode(500, new { error = "Falha interna no servidor" });
+            return StatusCode(500, new ErrorViewModel("global", "Falha interna no servidor"));
         }
     }
 
@@ -153,24 +163,23 @@ public class UserController : ControllerBase
             var user = await _userRepository.GetUserByIdAsync(User.GetUserId());
 
             if (user == null)
-                return NotFound(new { error = "Nenhum usuário encontrado." });
+                return NotFound(new ErrorViewModel("data", "Nenhum usuário encontrado."));
 
             if (!PasswordHasher.Verify(user.Password ?? "", model.Password ?? ""))
-                return Unauthorized(new { error = "Senha incorreta." });
+                return Unauthorized(new ErrorViewModel("password", "Senha incorreta."));
 
             var hasUserCpf = await _userRepository.GetUserByCpfAsync(model.CPF ?? "");
 
             if (hasUserCpf != null)
-                return BadRequest(new { error = "CPF já cadastrado." });
+                return BadRequest(new ErrorViewModel("cpf", "CPF já cadastrado."));
 
             await _userRepository.UpdateUserByIdAsync(model, User.GetUserId());
 
-            return Ok(new { Message = "Dados editados com sucesso!" });
-
+            return Ok(new { Message = "Dados atualizados com sucesso!" });
         }
         catch (SqlException)
         {
-            return BadRequest(new { error = "E-mail já cadastrado." });
+            return BadRequest(new ErrorViewModel("email", "E-mail já cadastrado."));
         }
         catch
         {
@@ -194,7 +203,7 @@ public class UserController : ControllerBase
             var user = await _userRepository.GetUserByIdAsync(User.GetUserId());
 
             if (user == null)
-                return NotFound(new { error = "Nenhum usuário encontrado." });
+                return NotFound(new ErrorViewModel("data", "Nenhum usuário encontrado."));
 
             await _userRepository.DeleteUserByIdAsync(User.GetUserId());
 

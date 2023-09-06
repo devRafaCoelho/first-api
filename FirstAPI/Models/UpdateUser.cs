@@ -6,8 +6,11 @@ public class UpdateUser
 {
     public int Id { get; set; }
 
-    [Required(ErrorMessage = "O Nome é obrigatório.")]
-    public string? Name { get; set; }
+    [Required(ErrorMessage = "O Primeiro Nome é obrigatório.")]
+    public string? FirstName { get; set; }
+
+    [Required(ErrorMessage = "O Último Nome é obrigatório.")]
+    public string? LastName { get; set; }
 
     [Required(ErrorMessage = "O E-mail é obrigatório.")]
     [EmailAddress(ErrorMessage = "E-mail inválido.")]

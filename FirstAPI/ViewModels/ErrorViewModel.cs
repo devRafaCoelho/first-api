@@ -1,11 +1,16 @@
 ﻿namespace FirstAPI.ViewModels;
-
 public class ErrorViewModel
 {
-    public object Error { get; set; }
+    public ErrorDetail Error { get; set; }
 
-    public ErrorViewModel(string error)
+    public ErrorViewModel(string type, string message)
     {
-        Error = new { error };
+        Error = new ErrorDetail { Type = type, Message = message };
     }
+}
+
+public class ErrorDetail
+{
+    public string Type { get; set; }
+    public string Message { get; set; }
 }
