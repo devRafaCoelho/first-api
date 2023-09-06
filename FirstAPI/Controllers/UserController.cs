@@ -31,14 +31,14 @@ public class UserController : ControllerBase
             if (!ModelState.IsValid)
                 return BadRequest(new { error = ModelState.GetErrors() });
 
-            var userEmail = await _userRepository.GetUserByEmailAsync(model.Email);
+            var emailExists = await _userRepository.GetUserByEmailAsync(model.Email);
 
-            if (userEmail != null)
+            if (emailExists != null)
                 return BadRequest(new ErrorViewModel("email", "E-mail já cadastrado."));
 
-            var userCPF = await _userRepository.GetUserByCpfAsync(model.CPF);
+            var cpfExists = await _userRepository.GetUserByCpfAsync(model.CPF);
 
-            if (userCPF != null)
+            if (cpfExists != null)
                 return BadRequest(new ErrorViewModel("cpf", "CPF já cadastrado."));
 
             if (model.Password != model.ConfirmPassword)
@@ -168,9 +168,9 @@ public class UserController : ControllerBase
             if (!PasswordHasher.Verify(user.Password ?? "", model.Password ?? ""))
                 return Unauthorized(new ErrorViewModel("password", "Senha incorreta."));
 
-            var hasUserCpf = await _userRepository.GetUserByCpfAsync(model.CPF ?? "");
+            var cpfExists = await _userRepository.GetUserByCpfAsync(model.CPF);
 
-            if (hasUserCpf != null)
+            if (cpfExists != null)
                 return BadRequest(new ErrorViewModel("cpf", "CPF já cadastrado."));
 
             await _userRepository.UpdateUserByIdAsync(model, User.GetUserId());

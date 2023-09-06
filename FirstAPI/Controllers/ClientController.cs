@@ -32,6 +32,11 @@ public class ClientController : ControllerBase
             if (!ModelState.IsValid)
                 return BadRequest(new { error = ModelState.GetErrors() });
 
+            //var userEmail = await _userRepository.GetUserByEmailAsync(model.Email);
+
+            //if (userEmail != null)
+            //    return BadRequest(new ErrorViewModel("email", "E-mail já cadastrado."));
+
             var client = await _clientRepository.AddClientAsync(model);
 
             var result = new ClientViewModel
