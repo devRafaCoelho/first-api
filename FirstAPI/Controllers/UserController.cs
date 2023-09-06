@@ -82,7 +82,7 @@ public class UserController : ControllerBase
             if (user == null)
                 return Unauthorized(new ErrorViewModel("email", "Email incorreto."));
 
-            if (!PasswordHasher.Verify(user.Password ?? "", model.Password))
+            if (!PasswordHasher.Verify(user.Password, model.Password))
                 return Unauthorized(new ErrorViewModel("password", "Senha incorreta."));
 
             var token = tokenService.GenerateToken(user);
@@ -165,12 +165,12 @@ public class UserController : ControllerBase
             if (user == null)
                 return NotFound(new ErrorViewModel("data", "Nenhum usuário encontrado."));
 
-            if (!PasswordHasher.Verify(user.Password ?? "", model.Password ?? ""))
+            if (!PasswordHasher.Verify(user.Password, model.Password))
                 return Unauthorized(new ErrorViewModel("password", "Senha incorreta."));
 
             var cpfExists = await _userRepository.GetUserByCpfAsync(model.CPF);
 
-            if (cpfExists != null)
+            if (cpfExists != null && cpfExists.Id != user.Id)
                 return BadRequest(new ErrorViewModel("cpf", "CPF já cadastrado."));
 
             await _userRepository.UpdateUserByIdAsync(model, User.GetUserId());
@@ -183,7 +183,7 @@ public class UserController : ControllerBase
         }
         catch
         {
-            return StatusCode(500, new { error = "Falha interna no servidor" });
+            return StatusCode(500, new ErrorViewModel("global", "Falha interna no servidor"));
         }
     }
 
@@ -211,7 +211,7 @@ public class UserController : ControllerBase
         }
         catch
         {
-            return StatusCode(500, new { error = "Falha interna no servidor" });
+            return StatusCode(500, new ErrorViewModel("global", "Falha interna no servidor"));
         }
     }
 }
